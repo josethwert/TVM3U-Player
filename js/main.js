@@ -1,20 +1,27 @@
 window.onload = function () {
-    // URL de ejemplo de tu lista M3U
-    var m3uUrl = "https://ejemplo.com/tu_lista.m3u";
+    // Ruta relativa a la lista M3U local dentro del proyecto
+    var rutaListaLocal = "Lista/custom_url.m3u";
     
-    cargarListaM3U(m3uUrl);
+    cargarListaM3U(rutaListaLocal);
 };
 
-// Cargar y parsear la lista M3U
-function cargarListaM3U(url) {
+// Cargar la lista M3U (funciona tanto para archivos locales como para URLs http/https)
+function cargarListaM3U(rutaArchivo) {
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
+    xhr.open("GET", rutaArchivo, true);
+    
     xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            var canales = parsearM3U(xhr.responseText);
-            renderizarCanales(canales);
+        if (xhr.readyState === 4) {
+            // El código 200 aplica para HTTP/HTTPS y el código 0 para solicitudes de archivos locales (file:// / app://)
+            if (xhr.status === 200 || xhr.status === 0) {
+                var canales = parsearM3U(xhr.responseText);
+                renderizarCanales(canales);
+            } else {
+                console.error("Error al cargar la lista M3U local. Estado:", xhr.status);
+            }
         }
     };
+    
     xhr.send();
 }
 
@@ -41,10 +48,17 @@ function parsearM3U(m3uContent) {
     return canales;
 }
 
-// Mostrar los canales en pantalla
+// Mostrar la lista en pantalla
 function renderizarCanales(canales) {
     var ul = document.getElementById("playlist");
+    if (!ul) return;
+    
     ul.innerHTML = "";
+
+    if (canales.length === 0) {
+        ul.innerHTML = "<li style='padding:10px;'>No se encontraron canales en la lista local.</li>";
+        return;
+    }
 
     canales.forEach(function (canal) {
         var li = document.createElement("li");
@@ -60,25 +74,29 @@ function renderizarCanales(canales) {
     });
 }
 
-// Reproducir un flujo de video mediante AVPlay API de Tizen
+// Inicializar reproducción con AVPlay
 function reproducirCanal(streamUrl) {
     try {
-        webapis.avplay.stop();
-        webapis.avplay.close();
-        
-        webapis.avplay.open(streamUrl);
-        webapis.avplay.setDisplayRect(0, 0, 1920, 1080); // Ajusta según la resolución del TV
-        
-        var listener = {
-            onbufferingstart: function () { console.log("Buffering..."); },
-            onbufferingcomplete: function () { console.log("Buffering complete."); },
-            onerror: function (error) { console.error("Error en AVPlay:", error); }
-        };
-        
-        webapis.avplay.setListener(listener);
-        webapis.avplay.prepare();
-        webapis.avplay.play();
+        if (typeof webapis !== "undefined" && webapis.avplay) {
+            webapis.avplay.stop();
+            webapis.avplay.close();
+            
+            webapis.avplay.open(streamUrl);
+            webapis.avplay.setDisplayRect(0, 0, 1920, 1080);
+            
+            var listener = {
+                onbufferingstart: function () { console.log("Buffering..."); },
+                onbufferingcomplete: function () { console.log("Buffering completado."); },
+                onerror: function (error) { console.error("Error en AVPlay:", error); }
+            };
+            
+            webapis.avplay.setListener(listener);
+            webapis.avplay.prepare();
+            webapis.avplay.play();
+        } else {
+            console.log("Simulación de reproducción en PC/Browser:", streamUrl);
+        }
     } catch (e) {
-        console.error("Excepción al intentar reproducir:", e);
+        console.error("Error al ejecutar AVPlay:", e);
     }
 }
