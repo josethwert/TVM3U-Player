@@ -2,6 +2,7 @@ var listaCanales = [];
 var indiceSeleccionado = 0;
 var listaVisible = true;
 
+
 // URL directa al archivo M3U crudo (raw) en GitHub
 var URL_GITHUB_M3U = "https://raw.githubusercontent.com/josethwert/TVM3U-Player/main/Lista/custom_url.m3u";
 var RUTA_LOCAL_M3U = "Lista/custom_url.m3u";
@@ -432,6 +433,52 @@ function ajustarVolumen(delta) {
             console.log("Volumen actual:", nuevoNivel);
         } catch (e) {
             console.error("Error al ajustar volumen:", e);
+        }
+    }
+}
+
+// Contador de pulsaciones de la tecla Volver
+var contadorSalir = 0;
+var temporizadorSalir = null;
+
+// Registrar la tecla Return/Back en la API de Tizen
+if (window.tizen && window.tizen.tvinput) {
+    try {
+        tizen.tvinput.registerKey('Return');
+    } catch (e) {
+        console.warn('No se pudo registrar la tecla Return:', e);
+    }
+}
+
+// Escuchar los eventos del control remoto
+window.addEventListener('keydown', function (e) {
+    var keyCode = e.keyCode;
+
+    // Código 10009 es la tecla Volver/Return en controles de Samsung Tizen
+    if (keyCode === 10009) {
+        manejadorSalidaTriplePulsacion();
+    }
+});
+
+function manejadorSalidaTriplePulsacion() {
+    contadorSalir++;
+
+    // Reinicia el contador si pasan más de 1.5 segundos entre pulsaciones
+    clearTimeout(temporizadorSalir);
+    temporizadorSalir = setTimeout(function () {
+        contadorSalir = 0;
+    }, 1500);
+
+    if (contadorSalir === 1) {
+        console.log("Presiona 2 veces más para salir.");
+        // Opcional: Puedes mostrar un aviso/toast temporal en pantalla aquí
+    } else if (contadorSalir === 2) {
+        console.log("Presiona 1 vez más para salir.");
+    } else if (contadorSalir >= 3) {
+        console.log("Cerrando la aplicación...");
+        // API nativa de Tizen OS para cerrar la aplicación por completo
+        if (window.tizen && window.tizen.application) {
+            tizen.application.getCurrentApplication().exit();
         }
     }
 }
