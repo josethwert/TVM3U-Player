@@ -2,19 +2,24 @@ var listaCanales = [];
 var indiceSeleccionado = 0;
 var listaVisible = true;
 
-
-// URL directa al archivo M3U crudo (raw) en GitHub
+// URLs
 var URL_GITHUB_M3U = "https://raw.githubusercontent.com/josethwert/TVM3U-Player/main/Lista/custom_url.m3u";
+var URL_PROXY_M3U = "https://api.allorigins.win/raw?url=" + encodeURIComponent(URL_GITHUB_M3U);
 var RUTA_LOCAL_M3U = "Lista/custom_url.m3u";
+
+// Variables para salida
+var contadorSalir = 0;
+var temporizadorSalir = null;
+var osdTimeout = null;
 
 window.onload = function () {
     inicializarReproductorHTML();
     registrarTeclasTizen();
     
-    // 1. Cargar primero la lista local para garantizar un inicio rápido
+    // 1. Cargar lista local
     cargarListaLocal();
     
-    // 2. Verificar e integrar automáticamente cambios desde GitHub
+    // 2. Sincronizar desde GitHub
     sincronizarListaDesdeGitHub();
     
     document.addEventListener("keydown", manejarTeclado);
@@ -32,25 +37,22 @@ function inicializarReproductorHTML() {
 function registrarTeclasTizen() {
     try {
         if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
-            // Teclas de reproducción
+            // Registrar solo teclas multimedia y de canal
             tizen.tvinputdevice.registerKey("MediaPlay");
             tizen.tvinputdevice.registerKey("MediaStop");
             tizen.tvinputdevice.registerKey("MediaPause");
-
-            // Registro de teclas de cambio de canal para Tizen OS
             tizen.tvinputdevice.registerKey("ChannelUp");
             tizen.tvinputdevice.registerKey("ChannelDown");
+            tizen.tvinputdevice.registerKey("Return");
             
-            // Alternativas específicas de algunos modelos Tizen
-            try { tizen.tvinputdevice.registerKey("Up"); } catch(e){}
-            try { tizen.tvinputdevice.registerKey("Down"); } catch(e){}
+            // NO registrar VolumeUp, VolumeDown ni VolumeMute aquí.
         }
     } catch (e) {
         console.log("No es un entorno Tizen nativo:", e);
     }
 }
 
-// Carga la lista M3U local empaquetada con la app
+// Carga lista local
 function cargarListaLocal() {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", RUTA_LOCAL_M3U, true);
@@ -67,21 +69,11 @@ function cargarListaLocal() {
     xhr.send();
 }
 
-// Descarga la versión más reciente alojada en GitHub
-// URL directa al archivo M3U crudo en GitHub
-var URL_GITHUB_M3U = "https://raw.githubusercontent.com/josethwert/TVM3U-Player/main/Lista/custom_url.m3u";
-// URL proxy de respaldo para evitar bloqueos CORS/SSL estrictos en Samsung Tizen
-var URL_PROXY_M3U = "https://api.allorigins.win/raw?url=" + encodeURIComponent(URL_GITHUB_M3U);
-var RUTA_LOCAL_M3U = "Lista/custom_url.m3u";
-
-// Descarga la versión más reciente alojada en GitHub usando Fetch API / XMLHttpRequest
+// Descarga desde GitHub
 function sincronizarListaDesdeGitHub() {
     var timestamp = new Date().getTime();
     var urlFinal = URL_GITHUB_M3U + "?t=" + timestamp;
 
-    console.log("Iniciando descarga desde GitHub...");
-
-    // Intentar primero con la API fetch nativa de Tizen
     if (window.fetch) {
         fetch(urlFinal, { cache: "reload" })
             .then(function (response) {
@@ -100,7 +92,6 @@ function sincronizarListaDesdeGitHub() {
     }
 }
 
-// Respaldo vía Proxy CORS si el TV bloquea la conexión SSL directa con GitHub
 function descargarViaProxy(timestamp) {
     var urlProxy = URL_PROXY_M3U + "&t=" + timestamp;
     
@@ -118,7 +109,6 @@ function descargarViaProxy(timestamp) {
     }
 }
 
-// Respaldo XHR clásico con cabeceras estrictas
 function descargarViaXHR(targetUrl, timestamp) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", targetUrl, true);
@@ -138,18 +128,14 @@ function descargarViaXHR(targetUrl, timestamp) {
     xhr.send();
 }
 
-// Función encargada de parsear y refrescar la UI en la pantalla del TV
 function procesarYActualizarLista(contenidoM3U, fuente) {
     var canalesNuevos = parsearM3U(contenidoM3U);
 
     if (canalesNuevos && canalesNuevos.length > 0) {
         listaCanales = canalesNuevos;
-        
-        // Si el índice supera el nuevo tamaño de la lista, se ajusta a 0
         if (indiceSeleccionado >= listaCanales.length) {
             indiceSeleccionado = 0;
         }
-
         renderizarCanales(listaCanales);
         actualizarSeleccionVisual();
         console.log("¡Lista actualizada con éxito en la TV desde: " + fuente + "!");
@@ -157,6 +143,7 @@ function procesarYActualizarLista(contenidoM3U, fuente) {
         console.warn("La lista descargada desde " + fuente + " estaba vacía o con formato inválido.");
     }
 }
+
 function parsearM3U(m3uContent) {
     var lineas = m3uContent.split('\n');
     var canales = [];
@@ -212,67 +199,115 @@ function renderizarCanales(canales) {
 
 function manejarTeclado(e) {
     var keyCode = e.keyCode;
-    
-    // Imprimir en consola para depurar cuál keyCode está enviando tu control remoto
     console.log("Tecla presionada KeyCode:", keyCode);
 
     // --- 1. ZAPPING RÁPIDO (CH+ / CH-) ---
-    // Detecta 427 (ChannelUp nativo), 33 (PageUp/CH+ en algunos modelos)
     if (keyCode === 427 || keyCode === 33) {
-        cambiarCanalRelativo(1); // Canal siguiente
+        cambiarCanalRelativo(1);
         e.preventDefault();
         return;
-    }
-    // Detecta 428 (ChannelDown nativo), 34 (PageDown/CH- en algunos modelos)
-    else if (keyCode === 428 || keyCode === 34) {
-        cambiarCanalRelativo(-1); // Canal anterior
+    } else if (keyCode === 428 || keyCode === 34) {
+        cambiarCanalRelativo(-1);
         e.preventDefault();
         return;
     }
 
     // --- 2. CONTROL DE VOLUMEN ---
-    if (keyCode === 447 || keyCode === 107) { // VolumeUp
-        ajustarVolumen(5);
+    // VolumeUp: 447 (Tizen), 107 (Numpad +), 187 (Teclado +)
+    if (keyCode === 447 || keyCode === 107 || keyCode === 187) {
+        ajustarVolumen(1); // Modificado para subir de 1 en 1 o paso configurable
+        e.preventDefault();
         return;
-    } else if (keyCode === 448 || keyCode === 109) { // VolumeDown
-        ajustarVolumen(-5);
+    } 
+    // VolumeDown: 448 (Tizen), 109 (Numpad -), 189 (Teclado -)
+    else if (keyCode === 448 || keyCode === 109 || keyCode === 189) {
+        ajustarVolumen(-1);
+        e.preventDefault();
         return;
     }
 
-    // --- 3. NAVEGACIÓN DENTRO DE LA LISTA VISIBLE ---
+    // --- 3. BOTÓN RETURN TRIPLE PULSACIÓN (10009 / 27) ---
+    if (keyCode === 10009) {
+        if (!listaVisible) {
+            manejadorSalidaTriplePulsacion();
+        } else {
+            ocultarLista();
+        }
+        return;
+    }
+
+    // --- 4. NAVEGACIÓN DENTRO DE LA LISTA VISIBLE ---
     if (listaVisible) {
-        // Arriba (38)
-        if (keyCode === 38) {
+        if (keyCode === 38) { // Arriba
             if (indiceSeleccionado > 0) {
                 indiceSeleccionado--;
                 actualizarSeleccionVisual();
             }
-        }
-        // Abajo (40)
-        else if (keyCode === 40) {
+        } else if (keyCode === 40) { // Abajo
             if (indiceSeleccionado < listaCanales.length - 1) {
                 indiceSeleccionado++;
                 actualizarSeleccionVisual();
             }
-        }
-        // Enter / OK (13)
-        else if (keyCode === 13) {
+        } else if (keyCode === 13) { // Enter / OK
             if (listaCanales[indiceSeleccionado]) {
                 reproducirCanal(listaCanales[indiceSeleccionado].url);
                 ocultarLista();
             }
-        }
-        // Return / Back (10009 o 27)
-        else if (keyCode === 10009 || keyCode === 27) {
+        } else if (keyCode === 27) {
             ocultarLista();
         }
     } 
-    // --- 4. SI LA LISTA ESTÁ OCULTA ---
+    // --- 5. SI LA LISTA ESTÁ OCULTA ---
     else {
-        // Al presionar Arriba, Abajo, Enter o Return con la lista oculta, se despliega
-        if (keyCode === 38 || keyCode === 40 || keyCode === 13 || keyCode === 10009 || keyCode === 27) {
+        if (keyCode === 38 || keyCode === 40 || keyCode === 13 || keyCode === 27) {
             mostrarLista();
         }
+    }
+}
+
+// Función unificada de volumen para Audio Control Tizen, AVPlay y HTML5
+function ajustarVolumen(direccion) {
+    var paso = direccion * 5; // Cambia de 5 en 5%
+
+    // Opción A: API nativa de audio de Tizen (Cambia el volumen general de la TV)
+    if (typeof tizen !== "undefined" && tizen.tvaudiocontrol) {
+        try {
+            if (direccion > 0) {
+                tizen.tvaudiocontrol.setVolumeUp();
+            } else {
+                tizen.tvaudiocontrol.setVolumeDown();
+            }
+            console.log("Volumen cambiado vía tizen.tvaudiocontrol. Actual:", tizen.tvaudiocontrol.getVolume());
+            return;
+        } catch (err) {
+            console.warn("No se pudo cambiar vía tvaudiocontrol:", err);
+        }
+    }
+
+    // Opción B: AVPlay
+    if (typeof webapis !== "undefined" && webapis.avplay) {
+        try {
+            var nivelActual = webapis.avplay.getVolume();
+            var nuevoNivel = nivelActual + paso;
+            if (nuevoNivel > 100) nuevoNivel = 100;
+            if (nuevoNivel < 0) nuevoNivel = 0;
+
+            webapis.avplay.setVolume(nuevoNivel);
+            console.log("Volumen AVPlay:", nuevoNivel);
+            return;
+        } catch (e) {
+            console.warn("Error en AVPlay setVolume:", e);
+        }
+    }
+
+    // Opción C: Elemento HTMLVideo
+    var videoElement = document.getElementById("htmlvideo");
+    if (videoElement) {
+        var nuevoVol = videoElement.volume + (paso / 100);
+        if (nuevoVol > 1) nuevoVol = 1;
+        if (nuevoVol < 0) nuevoVol = 0;
+        videoElement.volume = nuevoVol;
+        console.log("Volumen HTMLVideo:", videoElement.volume);
     }
 }
 
@@ -307,7 +342,6 @@ function actualizarSeleccionVisual() {
 function reproducirCanal(streamUrl) {
     console.log("Reproduciendo:", streamUrl);
     
-    // Obtener los datos del canal actual
     var canalActual = listaCanales[indiceSeleccionado];
     if (canalActual) {
         mostrarOSD(indiceSeleccionado + 1, canalActual.nombre);
@@ -346,9 +380,7 @@ function reproducirCanal(streamUrl) {
         }
     }
 }
-var osdTimeout = null;
 
-// Función para mostrar el OSD con el canal activo
 function mostrarOSD(numeroCanal, nombreCanal) {
     var banner = document.getElementById("osd-banner");
     var numEl = document.getElementById("osd-number");
@@ -356,56 +388,27 @@ function mostrarOSD(numeroCanal, nombreCanal) {
 
     if (!banner || !numEl || !titleEl) return;
 
-    // Formatear el número de canal con ceros a la izquierda (ej. 01, 02)
     var numFormateado = (numeroCanal < 10 ? "0" : "") + numeroCanal;
 
     numEl.innerText = numFormateado;
     titleEl.innerText = nombreCanal;
 
-    // Mostrar el banner
     banner.classList.add("show");
 
-    // Reiniciar el temporizador si ya había uno activo
     if (osdTimeout) {
         clearTimeout(osdTimeout);
     }
 
-    // Ocultar automáticamente después de 4000 ms (4 segundos)
     osdTimeout = setTimeout(function () {
         banner.classList.remove("show");
     }, 4000);
 }
 
-function registrarTeclasTizen() {
-    try {
-        if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
-            // Teclas de reproducción
-            tizen.tvinputdevice.registerKey("MediaPlay");
-            tizen.tvinputdevice.registerKey("MediaStop");
-            tizen.tvinputdevice.registerKey("MediaPause");
-
-            // Teclas de Zapping (Canal Arriba / Abajo)
-            tizen.tvinputdevice.registerKey("ChannelUp");
-            tizen.tvinputdevice.registerKey("ChannelDown");
-
-            // Teclas de Volumen (Opcional si usas el control nativo del TV, 
-            // pero necesario si manejas el volumen internamente por AVPlay)
-            tizen.tvinputdevice.registerKey("VolumeUp");
-            tizen.tvinputdevice.registerKey("VolumeDown");
-            tizen.tvinputdevice.registerKey("VolumeMute");
-        }
-    } catch (e) {
-        console.log("No es un entorno Tizen nativo:", e);
-    }
-}
-
-// Función para cambiar de canal directamente sin abrir el menú
 function cambiarCanalRelativo(direccion) {
     if (listaCanales.length === 0) return;
 
     var nuevoIndice = indiceSeleccionado + direccion;
 
-    // Controlar límites (ciclar la lista si llega al final)
     if (nuevoIndice < 0) {
         nuevoIndice = listaCanales.length - 1;
     } else if (nuevoIndice >= listaCanales.length) {
@@ -414,56 +417,12 @@ function cambiarCanalRelativo(direccion) {
 
     indiceSeleccionado = nuevoIndice;
     actualizarSeleccionVisual();
-    
-    // Reproduce el nuevo canal y dispara el banner OSD automáticamente
     reproducirCanal(listaCanales[indiceSeleccionado].url);
 }
-
-// Control interno de volumen con la API de AVPlay
-function ajustarVolumen(delta) {
-    if (typeof webapis !== "undefined" && webapis.avplay) {
-        try {
-            var nivelActual = webapis.avplay.getVolume();
-            var nuevoNivel = nivelActual + delta;
-
-            if (nuevoNivel > 100) nuevoNivel = 100;
-            if (nuevoNivel < 0) nuevoNivel = 0;
-
-            webapis.avplay.setVolume(nuevoNivel);
-            console.log("Volumen actual:", nuevoNivel);
-        } catch (e) {
-            console.error("Error al ajustar volumen:", e);
-        }
-    }
-}
-
-// Contador de pulsaciones de la tecla Volver
-var contadorSalir = 0;
-var temporizadorSalir = null;
-
-// Registrar la tecla Return/Back en la API de Tizen
-if (window.tizen && window.tizen.tvinput) {
-    try {
-        tizen.tvinput.registerKey('Return');
-    } catch (e) {
-        console.warn('No se pudo registrar la tecla Return:', e);
-    }
-}
-
-// Escuchar los eventos del control remoto
-window.addEventListener('keydown', function (e) {
-    var keyCode = e.keyCode;
-
-    // Código 10009 es la tecla Volver/Return en controles de Samsung Tizen
-    if (keyCode === 10009) {
-        manejadorSalidaTriplePulsacion();
-    }
-});
 
 function manejadorSalidaTriplePulsacion() {
     contadorSalir++;
 
-    // Reinicia el contador si pasan más de 1.5 segundos entre pulsaciones
     clearTimeout(temporizadorSalir);
     temporizadorSalir = setTimeout(function () {
         contadorSalir = 0;
@@ -471,12 +430,10 @@ function manejadorSalidaTriplePulsacion() {
 
     if (contadorSalir === 1) {
         console.log("Presiona 2 veces más para salir.");
-        // Opcional: Puedes mostrar un aviso/toast temporal en pantalla aquí
     } else if (contadorSalir === 2) {
         console.log("Presiona 1 vez más para salir.");
     } else if (contadorSalir >= 3) {
         console.log("Cerrando la aplicación...");
-        // API nativa de Tizen OS para cerrar la aplicación por completo
         if (window.tizen && window.tizen.application) {
             tizen.application.getCurrentApplication().exit();
         }
