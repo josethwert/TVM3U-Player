@@ -37,15 +37,20 @@ function inicializarReproductorHTML() {
 function registrarTeclasTizen() {
     try {
         if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
-            // Registrar solo teclas multimedia y de canal
+            // Teclas de reproducción
             tizen.tvinputdevice.registerKey("MediaPlay");
             tizen.tvinputdevice.registerKey("MediaStop");
             tizen.tvinputdevice.registerKey("MediaPause");
+
+            // Teclas de Zapping
             tizen.tvinputdevice.registerKey("ChannelUp");
             tizen.tvinputdevice.registerKey("ChannelDown");
+
+            // Tecla Return / Back
             tizen.tvinputdevice.registerKey("Return");
-            
-            // NO registrar VolumeUp, VolumeDown ni VolumeMute aquí.
+
+            // NOTA: Las teclas VolumeUp, VolumeDown y VolumeMute NO se registran
+            // para que el sistema operativo de Tizen maneje el volumen nativo directamente.
         }
     } catch (e) {
         console.log("No es un entorno Tizen nativo:", e);
@@ -212,21 +217,7 @@ function manejarTeclado(e) {
         return;
     }
 
-    // --- 2. CONTROL DE VOLUMEN ---
-    // VolumeUp: 447 (Tizen), 107 (Numpad +), 187 (Teclado +)
-    if (keyCode === 447 || keyCode === 107 || keyCode === 187) {
-        ajustarVolumen(1); // Modificado para subir de 1 en 1 o paso configurable
-        e.preventDefault();
-        return;
-    } 
-    // VolumeDown: 448 (Tizen), 109 (Numpad -), 189 (Teclado -)
-    else if (keyCode === 448 || keyCode === 109 || keyCode === 189) {
-        ajustarVolumen(-1);
-        e.preventDefault();
-        return;
-    }
-
-    // --- 3. BOTÓN RETURN TRIPLE PULSACIÓN (10009 / 27) ---
+    // --- 2. BOTÓN RETURN TRIPLE PULSACIÓN (10009 / 27) ---
     if (keyCode === 10009) {
         if (!listaVisible) {
             manejadorSalidaTriplePulsacion();
@@ -236,7 +227,7 @@ function manejarTeclado(e) {
         return;
     }
 
-    // --- 4. NAVEGACIÓN DENTRO DE LA LISTA VISIBLE ---
+    // --- 3. NAVEGACIÓN DENTRO DE LA LISTA VISIBLE ---
     if (listaVisible) {
         if (keyCode === 38) { // Arriba
             if (indiceSeleccionado > 0) {
@@ -257,57 +248,11 @@ function manejarTeclado(e) {
             ocultarLista();
         }
     } 
-    // --- 5. SI LA LISTA ESTÁ OCULTA ---
+    // --- 4. SI LA LISTA ESTÁ OCULTA ---
     else {
         if (keyCode === 38 || keyCode === 40 || keyCode === 13 || keyCode === 27) {
             mostrarLista();
         }
-    }
-}
-
-// Función unificada de volumen para Audio Control Tizen, AVPlay y HTML5
-function ajustarVolumen(direccion) {
-    var paso = direccion * 5; // Cambia de 5 en 5%
-
-    // Opción A: API nativa de audio de Tizen (Cambia el volumen general de la TV)
-    if (typeof tizen !== "undefined" && tizen.tvaudiocontrol) {
-        try {
-            if (direccion > 0) {
-                tizen.tvaudiocontrol.setVolumeUp();
-            } else {
-                tizen.tvaudiocontrol.setVolumeDown();
-            }
-            console.log("Volumen cambiado vía tizen.tvaudiocontrol. Actual:", tizen.tvaudiocontrol.getVolume());
-            return;
-        } catch (err) {
-            console.warn("No se pudo cambiar vía tvaudiocontrol:", err);
-        }
-    }
-
-    // Opción B: AVPlay
-    if (typeof webapis !== "undefined" && webapis.avplay) {
-        try {
-            var nivelActual = webapis.avplay.getVolume();
-            var nuevoNivel = nivelActual + paso;
-            if (nuevoNivel > 100) nuevoNivel = 100;
-            if (nuevoNivel < 0) nuevoNivel = 0;
-
-            webapis.avplay.setVolume(nuevoNivel);
-            console.log("Volumen AVPlay:", nuevoNivel);
-            return;
-        } catch (e) {
-            console.warn("Error en AVPlay setVolume:", e);
-        }
-    }
-
-    // Opción C: Elemento HTMLVideo
-    var videoElement = document.getElementById("htmlvideo");
-    if (videoElement) {
-        var nuevoVol = videoElement.volume + (paso / 100);
-        if (nuevoVol > 1) nuevoVol = 1;
-        if (nuevoVol < 0) nuevoVol = 0;
-        videoElement.volume = nuevoVol;
-        console.log("Volumen HTMLVideo:", videoElement.volume);
     }
 }
 
