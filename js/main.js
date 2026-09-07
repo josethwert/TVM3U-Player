@@ -67,40 +67,94 @@ function cargarListaLocal() {
 }
 
 // Descarga la versión más reciente alojada en GitHub
-function sincronizarListaDesdeGitHub() {
-    var xhr = new XMLHttpRequest();
-    var urlSinCache = URL_GITHUB_M3U + "?nocache=" + new Date().getTime();
-    
-    xhr.open("GET", urlSinCache, true);
+// URL directa al archivo M3U crudo en GitHub
+var URL_GITHUB_M3U = "https://raw.githubusercontent.com/josethwert/TVM3U-Player/main/Lista/custom_url.m3u";
+// URL proxy de respaldo para evitar bloqueos CORS/SSL estrictos en Samsung Tizen
+var URL_PROXY_M3U = "https://api.allorigins.win/raw?url=" + encodeURIComponent(URL_GITHUB_M3U);
+var RUTA_LOCAL_M3U = "Lista/custom_url.m3u";
 
-    // Encabezados para forzar a la Smart TV a omitir la caché de disco
+// Descarga la versión más reciente alojada en GitHub usando Fetch API / XMLHttpRequest
+function sincronizarListaDesdeGitHub() {
+    var timestamp = new Date().getTime();
+    var urlFinal = URL_GITHUB_M3U + "?t=" + timestamp;
+
+    console.log("Iniciando descarga desde GitHub...");
+
+    // Intentar primero con la API fetch nativa de Tizen
+    if (window.fetch) {
+        fetch(urlFinal, { cache: "reload" })
+            .then(function (response) {
+                if (!response.ok) throw new Error("HTTP Status " + response.status);
+                return response.text();
+            })
+            .then(function (data) {
+                procesarYActualizarLista(data, "GitHub Directo (Fetch)");
+            })
+            .catch(function (err) {
+                console.warn("Falló Fetch directo. Intentando vía Proxy CORS:", err);
+                descargarViaProxy(timestamp);
+            });
+    } else {
+        descargarViaXHR(urlFinal, timestamp);
+    }
+}
+
+// Respaldo vía Proxy CORS si el TV bloquea la conexión SSL directa con GitHub
+function descargarViaProxy(timestamp) {
+    var urlProxy = URL_PROXY_M3U + "&t=" + timestamp;
+    
+    if (window.fetch) {
+        fetch(urlProxy, { cache: "no-store" })
+            .then(function (res) { return res.text(); })
+            .then(function (data) {
+                procesarYActualizarLista(data, "GitHub vía Proxy");
+            })
+            .catch(function (e) {
+                console.error("Error definitivo al descargar desde GitHub:", e);
+            });
+    } else {
+        descargarViaXHR(urlProxy, timestamp);
+    }
+}
+
+// Respaldo XHR clásico con cabeceras estrictas
+function descargarViaXHR(targetUrl, timestamp) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", targetUrl, true);
     xhr.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     xhr.setRequestHeader("Pragma", "no-cache");
     xhr.setRequestHeader("Expires", "0");
-    
+
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
-            console.log("Estado de respuesta GitHub TV:", xhr.status);
-            
-            if (xhr.status === 200) {
-                var canalesNuevos = parsearM3U(xhr.responseText);
-                
-                if (canalesNuevos && canalesNuevos.length > 0) {
-                    listaCanales = canalesNuevos;
-                    renderizarCanales(listaCanales);
-                    console.log("¡Lista actualizada con éxito en la TV desde GitHub!");
-                }
+            if (xhr.status === 200 && xhr.responseText) {
+                procesarYActualizarLista(xhr.responseText, "GitHub (XHR)");
             } else {
-                console.warn("La TV no pudo descargar la lista de GitHub. Código HTTP:", xhr.status);
+                console.warn("Error XHR TV Status:", xhr.status);
             }
         }
     };
-    
-    xhr.onerror = function (e) {
-        console.error("Error de red en la TV al conectar con GitHub:", e);
-    };
-    
     xhr.send();
+}
+
+// Función encargada de parsear y refrescar la UI en la pantalla del TV
+function procesarYActualizarLista(contenidoM3U, fuente) {
+    var canalesNuevos = parsearM3U(contenidoM3U);
+
+    if (canalesNuevos && canalesNuevos.length > 0) {
+        listaCanales = canalesNuevos;
+        
+        // Si el índice supera el nuevo tamaño de la lista, se ajusta a 0
+        if (indiceSeleccionado >= listaCanales.length) {
+            indiceSeleccionado = 0;
+        }
+
+        renderizarCanales(listaCanales);
+        actualizarSeleccionVisual();
+        console.log("¡Lista actualizada con éxito en la TV desde: " + fuente + "!");
+    } else {
+        console.warn("La lista descargada desde " + fuente + " estaba vacía o con formato inválido.");
+    }
 }
 function parsearM3U(m3uContent) {
     var lineas = m3uContent.split('\n');
