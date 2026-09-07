@@ -69,29 +69,35 @@ function cargarListaLocal() {
 // Descarga la versión más reciente alojada en GitHub
 function sincronizarListaDesdeGitHub() {
     var xhr = new XMLHttpRequest();
-    // Añadimos un parámetro de tiempo para evitar que la TV use respuestas guardadas en caché
-    var urlSinCache = URL_GITHUB_M3U + "?t=" + new Date().getTime();
+    var urlSinCache = URL_GITHUB_M3U + "?nocache=" + new Date().getTime();
     
     xhr.open("GET", urlSinCache, true);
+
+    // Encabezados para forzar a la Smart TV a omitir la caché de disco
+    xhr.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    xhr.setRequestHeader("Pragma", "no-cache");
+    xhr.setRequestHeader("Expires", "0");
     
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
+            console.log("Estado de respuesta GitHub TV:", xhr.status);
+            
             if (xhr.status === 200) {
                 var canalesNuevos = parsearM3U(xhr.responseText);
                 
-                if (canalesNuevos.length > 0) {
+                if (canalesNuevos && canalesNuevos.length > 0) {
                     listaCanales = canalesNuevos;
                     renderizarCanales(listaCanales);
-                    console.log("Lista actualizada con éxito desde GitHub.");
+                    console.log("¡Lista actualizada con éxito en la TV desde GitHub!");
                 }
             } else {
-                console.warn("No se pudo sincronizar desde GitHub. Usando lista local. Estado:", xhr.status);
+                console.warn("La TV no pudo descargar la lista de GitHub. Código HTTP:", xhr.status);
             }
         }
     };
     
-    xhr.onerror = function () {
-        console.warn("Error de red al intentar conectar con GitHub. Manteniendo lista local.");
+    xhr.onerror = function (e) {
+        console.error("Error de red en la TV al conectar con GitHub:", e);
     };
     
     xhr.send();
