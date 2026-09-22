@@ -1,14 +1,24 @@
 #EXTM3U
 #EXTINF:-1,Las estrellas MEXICO teleon.tv
 https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index.m3u8
+
+#EXTINF:-1,Las estrellas 460p
+https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_4.m3u8
+
 #EXTINF:-1,Las estrellas 540p
 https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_5.m3u8
 #EXTINF:-1,Las estrellas 720
 https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_6.m3u8
 #EXTINF:-1,Las estrellas Estados Unidos 1080p teleon.tv
 https://estrellatv-plex.amagi.tv/playlistR1080p.m3u8
+#EXTINF:-1,Las estrellas Estados Unidos 1080p teleon.tv
+https://estrellatv-plex.amagi.tv/playlistR1080p.m3u8
 #EXTINF:-1,Las estrellas Estados Unidos 720p teleon.tv
 https://estrellatv-plex.amagi.tv/playlistR720P.m3u8
+
+#EXTINF:-1,Las estrellas Estados Unidos 432p
+https://estrellatv-oando.amagi.tv/playlistR432p.m3u8
+
 #EXTINF:-1,CNN Español 1080p
 https://amg00803-cnnfast-amg00803c3-lg-es-5477.playouts.now.amagi.tv/playlist1080p.m3u8
 #EXTINF:-1,AMC En Espanõl En Vivo
