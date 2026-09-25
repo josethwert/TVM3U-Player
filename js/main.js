@@ -863,227 +863,43 @@ function actualizarSeleccionVisual() {
 // ======================================================
 
 function reproducirCanal(streamUrl) {
+    console.log("Reproduciendo:", streamUrl);
 
-    console.log(
-        "Reproduciendo:",
-        streamUrl
-    );
-
-    var canalActual =
-        listaCanales[
-            indiceSeleccionado
-        ];
-
+    var canalActual = listaCanales[indiceSeleccionado];
     if (canalActual) {
-
-        mostrarOSD(
-            indiceSeleccionado + 1,
-            canalActual.nombre
-        );
+        mostrarOSD(indiceSeleccionado + 1, canalActual.nombre);
     }
 
-
-    // ==================================================
-    // DAILYMOTION
-    // ==================================================
-
+    // Detectar si el canal pertenece a Dailymotion
     if (esDailymotion(streamUrl)) {
-
-        var videoId =
-            obtenerIdDailymotion(
-                streamUrl
-            );
+        var videoId = obtenerIdDailymotion(streamUrl);
 
         if (videoId) {
+            // URL de tu servidor en Render con el ID del canal
+            var urlProxy = "https://proxy-dailymotion-tv.onrender.com/get-dailymotion-stream?id=" + videoId;
 
-            console.log(
-                "Canal Dailymotion:",
-                canalActual ?
-                    canalActual.nombre :
-                    ""
-            );
-
-            reproducirDailymotion(
-                videoId
-            );
-
-            return;
-
-        } else {
-
-            console.error(
-                "No se pudo obtener el ID de Dailymotion:",
-                streamUrl
-            );
-
-            return;
-        }
-    }
-
-
-    // ==================================================
-    // CANAL NORMAL
-    // ==================================================
-
-    // Si veníamos de Dailymotion,
-    // volver a preparar AVPlay.
-    if (reproduciendoDailymotion) {
-
-        prepararAVPlay();
-    }
-
-
-    // ==================================================
-    // AVPLAY TIZEN
-    // ==================================================
-
-    if (
-        typeof webapis !== "undefined" &&
-        webapis.avplay
-    ) {
-
-        try {
-
-            webapis.avplay.stop();
-
-        } catch (e1) {
-
-            console.log(
-                "AVPlay stop:",
-                e1
-            );
-        }
-
-        try {
-
-            webapis.avplay.close();
-
-        } catch (e2) {
-
-            console.log(
-                "AVPlay close:",
-                e2
-            );
-        }
-
-
-        try {
-
-            webapis.avplay.open(
-                streamUrl
-            );
-
-            webapis.avplay.setDisplayRect(
-                0,
-                0,
-                window.innerWidth ||
-                    1920,
-                window.innerHeight ||
-                    1080
-            );
-
-
-            var listener = {
-
-                onbufferingstart:
-                    function () {
-
-                        console.log(
-                            "Buffering..."
-                        );
-                    },
-
-                onbufferingcomplete:
-                    function () {
-
-                        console.log(
-                            "Buffering completado."
-                        );
-                    },
-
-                onerror:
-                    function (error) {
-
-                        console.error(
-                            "Error en AVPlay:",
-                            error
-                        );
-                    }
-            };
-
-
-            webapis.avplay.setListener(
-                listener
-            );
-
-
-            webapis.avplay.prepareAsync(
-
-                function () {
-
-                    console.log(
-                        "AVPlay preparado."
-                    );
-
-                    webapis.avplay.play();
-                },
-
-                function (err) {
-
-                    console.error(
-                        "Error en prepareAsync:",
-                        err
-                    );
-                }
-            );
-
-        } catch (e) {
-
-            console.error(
-                "Excepción en AVPlay:",
-                e
-            );
-        }
-
-
-    }
-
-    // ==================================================
-    // NAVEGADOR / HTML VIDEO
-    // ==================================================
-
-    else {
-
-        var videoElement =
-            document.getElementById(
-                "htmlvideo"
-            );
-
-        if (videoElement) {
-
-            videoElement.src =
-                streamUrl;
-
-            videoElement.play()
-
-                .then(function () {
-
-                    console.log(
-                        "HTML5 video reproduciendo."
-                    );
+            fetch(urlProxy)
+                .then(function (response) {
+                    return response.json();
                 })
-
+                .then(function (data) {
+                    if (data && data.streamUrl) {
+                        console.log("URL M3U8 obtenida con éxito:", data.streamUrl);
+                        lanzarAVPlay(data.streamUrl);
+                    } else {
+                        console.error("No se pudo obtener la URL de transmisión.");
+                    }
+                })
                 .catch(function (err) {
-
-                    console.log(
-                        "El navegador requiere interacción previa:",
-                        err
-                    );
+                    console.error("Error al conectar con el proxy:", err);
                 });
+            return;
         }
     }
-}
 
+    // Reproducción para enlaces M3U8 estándar
+    lanzarAVPlay(streamUrl);
+}
 
 // ======================================================
 // OSD
@@ -1274,6 +1090,59 @@ function manejadorSalidaTriplePulsacion() {
             tizen.application
                 .getCurrentApplication()
                 .exit();
+        }
+    }
+}
+function lanzarAVPlay(urlFinal) {
+    // Si veníamos de otra reproducción, preparamos el contenedor
+    prepararAVPlay();
+
+    if (typeof webapis !== "undefined" && webapis.avplay) {
+        try {
+            webapis.avplay.stop();
+            webapis.avplay.close();
+        } catch (e1) {
+            console.log("Limpieza de AVPlay:", e1);
+        }
+
+        try {
+            webapis.avplay.open(urlFinal);
+            webapis.avplay.setDisplayRect(0, 0, window.innerWidth || 1920, window.innerHeight || 1080);
+
+            var listener = {
+                onbufferingstart: function () {
+                    console.log("Cargando buffer...");
+                },
+                onbufferingcomplete: function () {
+                    console.log("Buffer listo.");
+                },
+                onerror: function (error) {
+                    console.error("Error en AVPlay:", error);
+                }
+            };
+
+            webapis.avplay.setListener(listener);
+
+            webapis.avplay.prepareAsync(
+                function () {
+                    console.log("AVPlay preparado. Iniciando reproducción...");
+                    webapis.avplay.play();
+                },
+                function (err) {
+                    console.error("Error en prepareAsync:", err);
+                }
+            );
+        } catch (e2) {
+            console.error("Excepción en AVPlay:", e2);
+        }
+    } else {
+        // Modo de prueba para navegador web PC
+        var videoElement = document.getElementById("htmlvideo");
+        if (videoElement) {
+            videoElement.src = urlFinal;
+            videoElement.play().catch(function (err) {
+                console.log("Interacción requerida para reproducir HTML5 video:", err);
+            });
         }
     }
 }
