@@ -9,7 +9,6 @@ https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_4.m3u8
 https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_5.m3u8
 #EXTINF:-1,Las estrellas 720
 https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_6.m3u8
-
 #EXTINF:-1,Las estrellas Estados Unidos 1080p teleon.tv
 https://estrellatv-plex.amagi.tv/playlistR1080p.m3u8
 #EXTINF:-1,Las estrellas Estados Unidos 720p teleon.tv
@@ -54,6 +53,3 @@ https://5ca3e84a76d30.streamlock.net/tn8/videotn8/chunklist_w647815762.m3u8
 https://d82p4jax9pjrm.cloudfront.net/medialist_4276517416086298479_hls.m3u8
 #EXTINF:-1,Canal 13 viva Nicaragua 720p
 https://cdn.vivamediosni.com/viva_720p/main_stream.m3u8
-
-#EXTINF:-1,Canal 13 viva Nicaragua 720p
-https://www.dailymotion.com/video/x9hvyy0
