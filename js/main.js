@@ -1131,49 +1131,78 @@ function lanzarAVPlay(urlFinal) {
         }
     }
 }
-function obtenerStreamDailymotion(videoId) {
-    var metadataUrl = "https://www.dailymotion.com/player/metadata/video/" + videoId;
+// ======================================================
+// OBTENER STREAM DAILYMOTION DIRECTO EN TV
+// ======================================================
 
-    fetch(metadataUrl)
+function obtenerStreamDailymotion(videoId) {
+    if (!videoId) {
+        console.error("ID de Dailymotion no válido.");
+        return;
+    }
+
+    console.log("Cargando canal Dailymotion con ID:", videoId);
+
+    var metadataUrl = "https://www.dailymotion.com/player/metadata/video/" + videoId + "?t=" + new Date().getTime();
+
+    fetch(metadataUrl, { cache: "no-store" })
         .then(function (response) {
             return response.json();
         })
         .then(function (data) {
-            if (data && data.qualities && data.qualities.auto) {
-                var masterM3u8Url = data.qualities.auto[0].url;
-                
-                // Pedimos el contenido del M3U8 Master desde la TV
-                return fetch(masterM3u8Url).then(function (m3uRes) {
-                    return m3uRes.text();
-                }).then(function (m3uText) {
-                    var lines = m3uText.split("\n");
-                    var finalUrl = "";
+            var masterM3u8Url = null;
 
-                    for (var i = 0; i < lines.length; i++) {
-                        var line = lines[i].trim();
-                        if (line.indexOf("sec2(") !== -1 || (line.indexOf("http") === 0 && line.indexOf("cdndirector") === -1)) {
-                            finalUrl = line;
-                            break;
+            // 1. Intentar obtener la URL de 'qualities.auto' (estándar)
+            if (data && data.qualities && data.qualities.auto && data.qualities.auto.length > 0) {
+                masterM3u8Url = data.qualities.auto[0].url;
+            } 
+            // 2. Si no existe 'auto', recorrer todas las claves de calidades (live, 720, 480, etc.)
+            else if (data && data.qualities) {
+                var keys = Object.keys(data.qualities);
+                for (var k = 0; k < keys.length; k++) {
+                    var q = data.qualities[keys[k]];
+                    if (Array.isArray(q) && q.length > 0 && q[0].url) {
+                        masterM3u8Url = q[0].url;
+                        break;
+                    }
+                }
+            }
+
+            if (masterM3u8Url) {
+                // Solicitar el contenido M3U8 Master
+                return fetch(masterM3u8Url, { cache: "no-store" })
+                    .then(function (m3uRes) {
+                        return m3uRes.text();
+                    })
+                    .then(function (m3uText) {
+                        var lines = m3uText.split("\n");
+                        var finalUrl = "";
+
+                        for (var i = 0; i < lines.length; i++) {
+                            var line = lines[i].trim();
+                            if (line.indexOf("sec2(") !== -1 || (line.indexOf("http") === 0 && line.indexOf("cdndirector") === -1)) {
+                                finalUrl = line;
+                                break;
+                            }
                         }
-                    }
 
-                    if (!finalUrl) {
-                        finalUrl = masterM3u8Url;
-                    }
+                        if (!finalUrl) {
+                            finalUrl = masterM3u8Url;
+                        }
 
-                    // Limpiar fragmentos #cell=... que congelan Tizen AVPlay
-                    if (finalUrl.indexOf("#") !== -1) {
-                        finalUrl = finalUrl.split("#")[0];
-                    }
+                        // Eliminar fragmentos #cell=... que congelan AVPlay en Tizen
+                        if (finalUrl.indexOf("#") !== -1) {
+                            finalUrl = finalUrl.split("#")[0];
+                        }
 
-                    console.log("URL M3U8 final obtenida en la TV:", finalUrl);
-                    lanzarAVPlay(finalUrl);
-                });
+                        console.log("URL final resuelta para ID " + videoId + ":", finalUrl);
+                        lanzarAVPlay(finalUrl);
+                    });
             } else {
-                console.error("No se encontró el flujo M3U8 para este canal.");
+                console.error("No se encontraron enlaces M3U8 en la respuesta de Dailymotion para el ID:", videoId);
             }
         })
         .catch(function (err) {
-            console.error("Error al obtener la señal desde Dailymotion:", err);
+            console.error("Error al obtener señal para ID " + videoId + ":", err);
         });
 }
