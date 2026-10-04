@@ -870,19 +870,19 @@ function reproducirCanal(streamUrl) {
         mostrarOSD(indiceSeleccionado + 1, canalActual.nombre);
     }
 
-    // Detectar si el canal pertenece a Dailymotion
+    // 1. Si es de Dailymotion, procesar la llamada directa a Dailymotion
     if (esDailymotion(streamUrl)) {
         var videoId = obtenerIdDailymotion(streamUrl);
 
         if (videoId) {
-            console.log("Solicitando stream Dailymotion directamente desde la TV para ID:", videoId);
-            // Llama directamente a la API de Dailymotion usando la IP de la TV
+            console.log("Cargando canal de Dailymotion ID:", videoId);
             obtenerStreamDailymotion(videoId);
             return;
         }
     }
 
-    // Reproducción para enlaces M3U8 estándar
+    // 2. Si es un M3U8 normal (como Canal 13 Viva Nicaragua), lanzar AVPlay
+    console.log("Cargando flujo M3U8 directo:", streamUrl);
     lanzarAVPlay(streamUrl);
 }
 
