@@ -875,24 +875,9 @@ function reproducirCanal(streamUrl) {
         var videoId = obtenerIdDailymotion(streamUrl);
 
         if (videoId) {
-            // URL de tu servidor en Render con el ID del canal
-            var urlProxy = "https://proxy-dailymotion-tv.onrender.com/get-dailymotion-stream?id=" + videoId;
-
-            fetch(urlProxy)
-                .then(function (response) {
-                    return response.json();
-                })
-                .then(function (data) {
-                    if (data && data.streamUrl) {
-                        console.log("URL M3U8 obtenida con éxito:", data.streamUrl);
-                        lanzarAVPlay(data.streamUrl);
-                    } else {
-                        console.error("No se pudo obtener la URL de transmisión.");
-                    }
-                })
-                .catch(function (err) {
-                    console.error("Error al conectar con el proxy:", err);
-                });
+            console.log("Solicitando stream Dailymotion directamente desde la TV para ID:", videoId);
+            // Llama directamente a la API de Dailymotion usando la IP de la TV
+            obtenerStreamDailymotion(videoId);
             return;
         }
     }
@@ -1145,4 +1130,50 @@ function lanzarAVPlay(urlFinal) {
             });
         }
     }
+}
+function obtenerStreamDailymotion(videoId) {
+    var metadataUrl = "https://www.dailymotion.com/player/metadata/video/" + videoId;
+
+    fetch(metadataUrl)
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+            if (data && data.qualities && data.qualities.auto) {
+                var masterM3u8Url = data.qualities.auto[0].url;
+                
+                // Pedimos el contenido del M3U8 Master desde la TV
+                return fetch(masterM3u8Url).then(function (m3uRes) {
+                    return m3uRes.text();
+                }).then(function (m3uText) {
+                    var lines = m3uText.split("\n");
+                    var finalUrl = "";
+
+                    for (var i = 0; i < lines.length; i++) {
+                        var line = lines[i].trim();
+                        if (line.indexOf("sec2(") !== -1 || (line.indexOf("http") === 0 && line.indexOf("cdndirector") === -1)) {
+                            finalUrl = line;
+                            break;
+                        }
+                    }
+
+                    if (!finalUrl) {
+                        finalUrl = masterM3u8Url;
+                    }
+
+                    // Limpiar fragmentos #cell=... que congelan Tizen AVPlay
+                    if (finalUrl.indexOf("#") !== -1) {
+                        finalUrl = finalUrl.split("#")[0];
+                    }
+
+                    console.log("URL M3U8 final obtenida en la TV:", finalUrl);
+                    lanzarAVPlay(finalUrl);
+                });
+            } else {
+                console.error("No se encontró el flujo M3U8 para este canal.");
+            }
+        })
+        .catch(function (err) {
+            console.error("Error al obtener la señal desde Dailymotion:", err);
+        });
 }
