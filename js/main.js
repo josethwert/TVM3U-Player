@@ -1132,7 +1132,7 @@ function lanzarAVPlay(urlFinal) {
     }
 }
 // ======================================================
-// OBTENER STREAM DAILYMOTION DIRECTO EN TV
+// OBTENER STREAM DAILYMOTION COMPATIBLE CON 720P / TIZEN
 // ======================================================
 
 function obtenerStreamDailymotion(videoId) {
@@ -1141,7 +1141,7 @@ function obtenerStreamDailymotion(videoId) {
         return;
     }
 
-    console.log("Cargando canal Dailymotion con ID:", videoId);
+    console.log("Procesando señal Dailymotion:", videoId);
 
     var metadataUrl = "https://www.dailymotion.com/player/metadata/video/" + videoId + "?t=" + new Date().getTime();
 
@@ -1152,12 +1152,10 @@ function obtenerStreamDailymotion(videoId) {
         .then(function (data) {
             var masterM3u8Url = null;
 
-            // 1. Intentar obtener la URL de 'qualities.auto' (estándar)
+            // Extraer la URL principal de la respuesta de metadatos
             if (data && data.qualities && data.qualities.auto && data.qualities.auto.length > 0) {
                 masterM3u8Url = data.qualities.auto[0].url;
-            } 
-            // 2. Si no existe 'auto', recorrer todas las claves de calidades (live, 720, 480, etc.)
-            else if (data && data.qualities) {
+            } else if (data && data.qualities) {
                 var keys = Object.keys(data.qualities);
                 for (var k = 0; k < keys.length; k++) {
                     var q = data.qualities[keys[k]];
@@ -1168,41 +1166,53 @@ function obtenerStreamDailymotion(videoId) {
                 }
             }
 
-            if (masterM3u8Url) {
-                // Solicitar el contenido M3U8 Master
-                return fetch(masterM3u8Url, { cache: "no-store" })
-                    .then(function (m3uRes) {
-                        return m3uRes.text();
-                    })
-                    .then(function (m3uText) {
-                        var lines = m3uText.split("\n");
-                        var finalUrl = "";
+            if (!masterM3u8Url) {
+                console.error("No se encontraron enlaces de video para el ID:", videoId);
+                return;
+            }
 
-                        for (var i = 0; i < lines.length; i++) {
-                            var line = lines[i].trim();
-                            if (line.indexOf("sec2(") !== -1 || (line.indexOf("http") === 0 && line.indexOf("cdndirector") === -1)) {
-                                finalUrl = line;
+            // Descargar el manifiesto máster desde la TV para parsear la variante HLS adecuada
+            return fetch(masterM3u8Url, { cache: "no-store" })
+                .then(function (m3uRes) {
+                    return m3uRes.text();
+                })
+                .then(function (m3uText) {
+                    var lines = m3uText.split("\n");
+                    var finalUrl = "";
+
+                    // Buscar primero sub-variantes que contengan sec2(...) o URLs absolutas de CDN
+                    for (var i = 0; i < lines.length; i++) {
+                        var line = lines[i].trim();
+                        
+                        // Omitir líneas vacías y comentarios de M3U8
+                        if (line.length === 0 || line.indexOf("#") === 0) {
+                            continue;
+                        }
+
+                        if (line.indexOf("http") === 0 || line.indexOf("sec2(") !== -1) {
+                            finalUrl = line;
+                            // Preferir la variante con el token de seguridad activo
+                            if (line.indexOf("sec2(") !== -1) {
                                 break;
                             }
                         }
+                    }
 
-                        if (!finalUrl) {
-                            finalUrl = masterM3u8Url;
-                        }
+                    // Si no se encuentra variante interna, se utiliza la URL máster directa
+                    if (!finalUrl) {
+                        finalUrl = masterM3u8Url;
+                    }
 
-                        // Eliminar fragmentos #cell=... que congelan AVPlay en Tizen
-                        if (finalUrl.indexOf("#") !== -1) {
-                            finalUrl = finalUrl.split("#")[0];
-                        }
+                    // Limpieza crítica para Tizen AVPlay: eliminar querystrings o fragmentos #cell=
+                    if (finalUrl.indexOf("#") !== -1) {
+                        finalUrl = finalUrl.split("#")[0];
+                    }
 
-                        console.log("URL final resuelta para ID " + videoId + ":", finalUrl);
-                        lanzarAVPlay(finalUrl);
-                    });
-            } else {
-                console.error("No se encontraron enlaces M3U8 en la respuesta de Dailymotion para el ID:", videoId);
-            }
+                    console.log("URL resuelta para canal " + videoId + ":", finalUrl);
+                    lanzarAVPlay(finalUrl);
+                });
         })
         .catch(function (err) {
-            console.error("Error al obtener señal para ID " + videoId + ":", err);
+            console.error("Error al procesar el canal de Dailymotion:", err);
         });
 }
