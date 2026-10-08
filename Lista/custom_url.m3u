@@ -19,8 +19,6 @@ http://181.78.79.131:8000/play/a0qh
 #EXTGRP:Peliculas
 #EXTVLCOPT:network-caching=1000
 http://181.78.79.131:8000/play/a0t6
-#EXTINF:-1,Canal Trece - Nuestro Canal - sinartdigital.com
-https://www.dailymotion.com/video/x7vh8g3
 #EXTINF:-1,Las estrellas Estados Unidos 1080p teleon.tv
 https://estrellatv-plex.amagi.tv/playlistR1080p.m3u8
 #EXTINF:-1,Las estrellas Estados Unidos 720p teleon.tv
