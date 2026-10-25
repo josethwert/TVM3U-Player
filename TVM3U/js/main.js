@@ -1,5 +1,7 @@
 var listaCanales = [];
 var indiceSeleccionado = 0;
+var indiceReproduciendo = 0; // NUEVO: Rastrea el canal que suena actualmente
+var currentEpgRequestId = 0; // NUEVO: Control para evitar conflictos de respuestas lentas
 var listaVisible = true;
 
 // URLs
@@ -581,15 +583,11 @@ function parsearM3U(m3uContent) {
 
 
 // ======================================================
-// RENDERIZAR CANALES
+// RENDERIZAR CANALES (Solo muestra el nombre del canal)
 // ======================================================
 
 function renderizarCanales(canales) {
-
-    var ul =
-        document.getElementById(
-            "playlist"
-        );
+    var ul = document.getElementById("playlist");
 
     if (!ul) {
         return;
@@ -598,58 +596,32 @@ function renderizarCanales(canales) {
     ul.innerHTML = "";
 
     if (canales.length === 0) {
-
-        ul.innerHTML =
-            "<li style='padding:10px;'>" +
-            "No se encontraron canales." +
-            "</li>";
-
+        ul.innerHTML = "<li style='padding:10px;'>No se encontraron canales.</li>";
         return;
     }
 
-    canales.forEach(
-        function (canal, index) {
+    canales.forEach(function (canal, index) {
+        var li = document.createElement("li");
 
-            var li =
-                document.createElement("li");
+        // Asignamos únicamente el nombre limpio del canal
+        li.innerText = canal.nombre;
 
-            li.innerText =
-                canal.nombre;
+        li.setAttribute("data-index", index);
 
-            li.setAttribute(
-                "data-index",
-                index
-            );
-
-            if (
-                index ===
-                indiceSeleccionado
-            ) {
-
-                li.classList.add(
-                    "selected"
-                );
-            }
-
-            li.onclick = function () {
-
-                indiceSeleccionado =
-                    index;
-
-                actualizarSeleccionVisual();
-
-                reproducirCanal(
-                    canal.url
-                );
-
-                ocultarLista();
-            };
-
-            ul.appendChild(li);
+        if (index === indiceSeleccionado) {
+            li.classList.add("selected");
         }
-    );
-}
 
+        li.onclick = function () {
+            indiceSeleccionado = index;
+            actualizarSeleccionVisual();
+            reproducirCanal(canal.url);
+            ocultarLista();
+        };
+
+        ul.appendChild(li);
+    });
+}
 
 // ======================================================
 // TECLADO
@@ -718,11 +690,13 @@ function manejarTeclado(e) {
                 indiceSeleccionado--;
                 actualizarSeleccionVisual();
 
+                /*
                 // Actualizar OSD en tiempo real al subir
                 if (listaCanales.length > 0 && listaCanales[indiceSeleccionado]) {
                     var c = listaCanales[indiceSeleccionado];
                     mostrarOSD(indiceSeleccionado + 1, c.nombre, c.programa);
                 }
+                    */
             }
         }
 
@@ -730,12 +704,13 @@ function manejarTeclado(e) {
             if (indiceSeleccionado < listaCanales.length - 1) {
                 indiceSeleccionado++;
                 actualizarSeleccionVisual();
-
+                /*
                 // Actualizar OSD en tiempo real al bajar
                 if (listaCanales.length > 0 && listaCanales[indiceSeleccionado]) {
                     var c = listaCanales[indiceSeleccionado];
                     mostrarOSD(indiceSeleccionado + 1, c.nombre, c.programa);
                 }
+                    */
             }
         }
 
@@ -781,10 +756,10 @@ function mostrarLista() {
             clearTimeout(osdTimeout);
         }
 
-        // Al mostrar la lista, el OSD muestra el canal y programa seleccionado permanentemente
-        if (listaCanales.length > 0 && listaCanales[indiceSeleccionado]) {
-            var c = listaCanales[indiceSeleccionado];
-            mostrarOSD(indiceSeleccionado + 1, c.nombre, c.programa);
+        // Al abrir la lista, el OSD muestra la info del canal que SE ESTÁ REPRODUCIENDO, no el seleccionado
+        if (listaCanales.length > 0 && listaCanales[indiceReproduciendo]) {
+            var c = listaCanales[indiceReproduciendo];
+            mostrarOSD(indiceReproduciendo + 1, c.nombre, c.programa);
         }
     }
 }
@@ -852,27 +827,26 @@ function actualizarSeleccionVisual() {
 function reproducirCanal(streamUrl) {
     console.log("Reproduciendo:", streamUrl);
 
-    var canalActual = listaCanales[indiceSeleccionado];
+    // El canal que el usuario seleccionó pasa a ser el canal activo en reproducción
+    indiceReproduciendo = indiceSeleccionado;
+
+    var canalActual = listaCanales[indiceReproduciendo];
     if (canalActual) {
-        mostrarOSD(indiceSeleccionado + 1, canalActual.nombre, canalActual.programa);
+        obtenerProgramaActualParaCanal(streamUrl);
     }
 
-    // 1. Si es de Dailymotion, procesar la llamada directa a Dailymotion
+    // 1. Si es de Dailymotion...
     if (esDailymotion(streamUrl)) {
         var videoId = obtenerIdDailymotion(streamUrl);
-
         if (videoId) {
-            console.log("Cargando canal de Dailymotion ID:", videoId);
             obtenerStreamDailymotion(videoId);
             return;
         }
     }
 
-    // 2. Si es un M3U8 normal (como Canal 13 Viva Nicaragua), lanzar AVPlay
-    console.log("Cargando flujo M3U8 directo:", streamUrl);
+    // 2. Si es M3U8 directo...
     lanzarAVPlay(streamUrl);
 }
-
 // ======================================================
 // OSD
 // ======================================================
@@ -1201,23 +1175,78 @@ function obtenerStreamDailymotion(videoId) {
 }
 
 // ======================================================
-// ACTUALIZAR PROGRAMA EN VIVO (Detectado del Stream)
+// ACTUALIZAR PROGRAMA EN VIVO (Corregido con índice activo)
 // ======================================================
 
 function actualizarProgramaEnVivo(nuevoPrograma) {
     if (!nuevoPrograma) return;
 
-    // Actualizamos el objeto del canal actual en memoria
-    if (listaCanales[indiceSeleccionado]) {
-        listaCanales[indiceSeleccionado].programa = nuevoPrograma;
+    // CORREGIDO: Usamos indiceReproduciendo en lugar de indiceSeleccionado
+    if (listaCanales[indiceReproduciendo]) {
+        listaCanales[indiceReproduciendo].programa = nuevoPrograma;
     }
 
-    // Actualizamos el texto en el OSD banner de inmediato
     var programEl = document.getElementById("osd-program");
     if (programEl) {
         programEl.innerText = "" + nuevoPrograma;
     }
 
-    // Si la lista está visible, también podríamos refrescar si lo deseas
     console.log("Metadatos en vivo detectados:", nuevoPrograma);
+}
+// ======================================================
+// CONSULTAR PROGRAMA ACTUAL AL SERVIDOR EPG (Con control de carrera)
+// ======================================================
+
+function obtenerProgramaActualParaCanal(urlCanal) {
+    var requestId = ++currentEpgRequestId; // Asignamos un ID único a esta petición
+    var canalTarget = indiceReproduciendo; // Guardamos el canal exacto de esta reproducción
+
+    var urlServidorEPG = "https://proxy-dailymotion-tv.onrender.com/api/epg?url=" + encodeURIComponent(urlCanal);
+
+    if (listaCanales[canalTarget]) {
+        var canal = listaCanales[canalTarget];
+        mostrarOSD(canalTarget + 1, canal.nombre, "Cargando programa...");
+    }
+
+    fetch(urlServidorEPG)
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+            // SI EL USUARIO CAMBIÓ DE CANAL MIENTRAS CARGABA, DESCARTAMOS ESTA RESPUESTA
+            if (requestId !== currentEpgRequestId) {
+                return;
+            }
+
+            var nombrePrograma = (data && data.programa) ? data.programa : "Transmisión en vivo";
+            
+            if (listaCanales[canalTarget]) {
+                listaCanales[canalTarget].programa = nombrePrograma;
+                var canal = listaCanales[canalTarget];
+
+                // Solo mostramos el OSD si el usuario sigue en este mismo canal
+                if (canalTarget === indiceReproduciendo) {
+                    mostrarOSD(canalTarget + 1, canal.nombre, nombrePrograma);
+                }
+            }
+        })
+        .catch(function (err) {
+            if (requestId !== currentEpgRequestId) return;
+            console.log("Error al consultar EPG:", err);
+            if (listaCanales[canalTarget] && canalTarget === indiceReproduciendo) {
+                var canal = listaCanales[canalTarget];
+                mostrarOSD(canalTarget + 1, canal.nombre, "Transmisión en vivo");
+            }
+        });
+}
+
+async function cargarEPG(urlCanal) {
+    try {
+        const response = await fetch(`https://proxy-dailymotion-tv.onrender.com/api/epg?url=${encodeURIComponent(urlCanal)}`);
+        const data = await response.json();
+        // Actualizar el texto del OSD / cartel de información en la TV
+        document.getElementById('info-programa').innerText = data.programa;
+    } catch (error) {
+        console.error("Error al cargar EPG:", error);
+    }
 }

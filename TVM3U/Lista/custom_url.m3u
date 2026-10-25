@@ -25,6 +25,8 @@ https://amg00803-cnnfast-amg00803c3-lg-es-5477.playouts.now.amagi.tv/playlist108
 https://amc-amcespanol-1-us.plex.wurl.tv/4300.m3u8
 #EXTINF:-1,Todo Novelas, más Pasiones 1080
 https://dtsszjrztq9ti.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-yshah5p4v45g1/ToDoNovelas_ES.m3u8
+#EXTINF:0 group-title="Peliculas",Pasiones HD
+http://181.78.79.131:8000/play/a0qh
 #EXTINF:-1,RT en Español En Vivo
 https://rt-esp.rttv.com/live/rtesp/playlist_800Kb.m3u8
 #EXTINF:-1,Retro Plus TV En Vivo
@@ -59,5 +61,7 @@ http://181.78.79.131:8000/play/a0q0
 http://181.78.8.199:8000/play/a0cu/index.m3u8
 #EXTINF:-1 group-title="Entretenimiento",Adult Swim
 http://181.78.79.131:8000/play/a0pk
+#EXTINF:0 group-title="Peliculas",HBO
+http://181.78.79.131:8000/play/a0qd
 #EXTINF:-1 group-title="Peliculas",HBO Xtreme HD
 http://181.78.79.131:8000/play/a0qy
