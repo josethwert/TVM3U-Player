@@ -756,10 +756,10 @@ function mostrarLista() {
             clearTimeout(osdTimeout);
         }
 
-        // Al abrir la lista, el OSD muestra la info del canal que SE ESTÁ REPRODUCIENDO, no el seleccionado
+        // Al abrir la lista, mostramos el canal en reproducción con su programa y su horario guardado
         if (listaCanales.length > 0 && listaCanales[indiceReproduciendo]) {
             var c = listaCanales[indiceReproduciendo];
-            mostrarOSD(indiceReproduciendo + 1, c.nombre, c.programa);
+            mostrarOSD(indiceReproduciendo + 1, c.nombre, c.programa || "Transmisión en vivo", c.horario || "");
         }
     }
 }
@@ -832,6 +832,14 @@ function reproducirCanal(streamUrl) {
 
     var canalActual = listaCanales[indiceReproduciendo];
     if (canalActual) {
+        // LIMPIEZA PREVENTIVA: Borramos los datos viejos para que canales sin EPG no hereden info anterior
+        canalActual.programa = "Transmisión en vivo";
+        canalActual.horario = "";
+
+        // Mostramos el OSD limpio de inmediato con el nombre del canal
+        mostrarOSD(indiceReproduciendo + 1, canalActual.nombre, "Cargando programa...", "");
+
+        // Consultamos al servidor EPG
         obtenerProgramaActualParaCanal(streamUrl);
     }
 
@@ -848,10 +856,10 @@ function reproducirCanal(streamUrl) {
     lanzarAVPlay(streamUrl);
 }
 // ======================================================
-// OSD
+// OSD (Actualizado para separar Programa y Horario)
 // ======================================================
 
-function mostrarOSD(numeroCanal, nombreCanal, nombrePrograma) {
+function mostrarOSD(numeroCanal, nombreCanal, nombrePrograma, horarioTexto) {
     var banner = document.getElementById("osd-banner");
     var numEl = document.getElementById("osd-number");
     var titleEl = document.getElementById("osd-title");
@@ -867,7 +875,12 @@ function mostrarOSD(numeroCanal, nombreCanal, nombrePrograma) {
     titleEl.innerText = nombreCanal;
 
     if (programEl) {
-        programEl.innerText = "" + (nombrePrograma || nombreCanal);
+        // Mostramos el programa principal arriba y el horario limpio justo debajo
+        if (horarioTexto) {
+            programEl.innerHTML = nombrePrograma + '<br><span style="font-size: 15px; color: #888;">' + horarioTexto + '</span>';
+        } else {
+            programEl.innerText = nombrePrograma;
+        }
     }
 
     // Mostramos el banner
@@ -877,8 +890,6 @@ function mostrarOSD(numeroCanal, nombreCanal, nombrePrograma) {
         clearTimeout(osdTimeout);
     }
 
-    // CONDICIÓN: Si la lista está visible, el OSD se queda fijo. 
-    // Si la lista está oculta, se oculta automáticamente tras 4 segundos.
     if (!listaVisible) {
         osdTimeout = setTimeout(function () {
             banner.classList.remove("show");
@@ -1194,18 +1205,19 @@ function actualizarProgramaEnVivo(nuevoPrograma) {
     console.log("Metadatos en vivo detectados:", nuevoPrograma);
 }
 // ======================================================
-// CONSULTAR PROGRAMA ACTUAL AL SERVIDOR EPG (Con control de carrera)
+// CONSULTAR PROGRAMA ACTUAL AL SERVIDOR EPG
 // ======================================================
 
 function obtenerProgramaActualParaCanal(urlCanal) {
-    var requestId = ++currentEpgRequestId; // Asignamos un ID único a esta petición
-    var canalTarget = indiceReproduciendo; // Guardamos el canal exacto de esta reproducción
+    var requestId = ++currentEpgRequestId;
+    var canalTarget = indiceReproduciendo;
 
+    //var urlServidorEPG = "http://localhost:3000/api/epg?url=" + encodeURIComponent(urlCanal); // O tu URL de Render
     var urlServidorEPG = "https://proxy-dailymotion-tv.onrender.com/api/epg?url=" + encodeURIComponent(urlCanal);
 
     if (listaCanales[canalTarget]) {
         var canal = listaCanales[canalTarget];
-        mostrarOSD(canalTarget + 1, canal.nombre, "Cargando programa...");
+        mostrarOSD(canalTarget + 1, canal.nombre, "Cargando programa...", "");
     }
 
     fetch(urlServidorEPG)
@@ -1213,20 +1225,28 @@ function obtenerProgramaActualParaCanal(urlCanal) {
             return response.json();
         })
         .then(function (data) {
-            // SI EL USUARIO CAMBIÓ DE CANAL MIENTRAS CARGABA, DESCARTAMOS ESTA RESPUESTA
             if (requestId !== currentEpgRequestId) {
                 return;
             }
 
             var nombrePrograma = (data && data.programa) ? data.programa : "Transmisión en vivo";
+            var horaInicio = (data && data.inicio) ? data.inicio : "";
+            var horaFin = (data && data.fin) ? data.fin : "";
+
+            // Formato ordenado: Nombre del programa arriba, horario abajo (ej. "21:30 - 22:40")
+            var horarioTexto = "";
+            if (horaInicio && horaFin) {
+                horarioTexto = horaInicio + " - " + horaFin;
+            }
             
             if (listaCanales[canalTarget]) {
                 listaCanales[canalTarget].programa = nombrePrograma;
+                listaCanales[canalTarget].horario = horarioTexto;
+                
                 var canal = listaCanales[canalTarget];
 
-                // Solo mostramos el OSD si el usuario sigue en este mismo canal
                 if (canalTarget === indiceReproduciendo) {
-                    mostrarOSD(canalTarget + 1, canal.nombre, nombrePrograma);
+                    mostrarOSD(canalTarget + 1, canal.nombre, nombrePrograma, horarioTexto);
                 }
             }
         })
@@ -1235,7 +1255,7 @@ function obtenerProgramaActualParaCanal(urlCanal) {
             console.log("Error al consultar EPG:", err);
             if (listaCanales[canalTarget] && canalTarget === indiceReproduciendo) {
                 var canal = listaCanales[canalTarget];
-                mostrarOSD(canalTarget + 1, canal.nombre, "Transmisión en vivo");
+                mostrarOSD(canalTarget + 1, canal.nombre, "Transmisión en vivo", "");
             }
         });
 }
