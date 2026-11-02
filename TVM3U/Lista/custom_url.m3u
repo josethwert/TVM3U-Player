@@ -13,6 +13,10 @@ https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_5.m3u8
 https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_6.m3u8
 #EXTINF:-1 group-title="Peliculas",Tlnovelas
 http://181.78.79.131:8000/play/a0t6
+#EXTINF:0 group-title="Peliculas",TNT Novelas HD
+#EXTGRP:Peliculas
+#EXTVLCOPT:network-caching=1000
+http://181.78.79.131:8000/play/a0na
 #EXTINF:-1,Todo Novelas, más Pasiones 1080
 https://dtsszjrztq9ti.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-yshah5p4v45g1/ToDoNovelas_ES.m3u8
 #EXTINF:0 group-title="Peliculas",Pasiones HD
@@ -23,6 +27,10 @@ https://estrellatv-plex.amagi.tv/playlistR1080p.m3u8
 https://estrellatv-plex.amagi.tv/playlistR720P.m3u8
 #EXTINF:-1,Las estrellas Estados Unidos 432p
 https://estrellatv-oando.amagi.tv/playlistR432p.m3u8
+#EXTINF:0 group-title="Noticias",CNN Español
+#EXTGRP:Noticias
+#EXTVLCOPT:network-caching=1000
+http://181.78.79.131:8000/play/a0p3
 #EXTINF:-1,CNN Español 1080p
 https://amg00803-cnnfast-amg00803c3-lg-es-5477.playouts.now.amagi.tv/playlist1080p.m3u8
 #EXTINF:-1,AMC En Espanõl En Vivo
@@ -73,10 +81,6 @@ http://181.78.79.131:8000/play/a0mw
 #EXTGRP:Documentales
 #EXTVLCOPT:network-caching=1000
 http://181.78.79.131:8000/play/a0n8
-#EXTINF:0 group-title="Peliculas",TNT Novelas HD
-#EXTGRP:Peliculas
-#EXTVLCOPT:network-caching=1000
-http://181.78.79.131:8000/play/a0na
 #EXTINF:0 group-title="Entretenimiento",MTV HD
 #EXTGRP:Entretenimiento
 #EXTVLCOPT:network-caching=1000
