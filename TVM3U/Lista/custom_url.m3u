@@ -1,35 +1,29 @@
 #EXTM3U
 #EXTINF:-1,Las estrellas MEXICO teleon.tv
 https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index.m3u8
-#EXTINF:-1,Las estrellas 270p
-https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_2.m3u8
 #EXTINF:-1,Las estrellas 360p
 https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_3.m3u8
-#EXTINF:-1,Las estrellas 460p
-https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_4.m3u8
-#EXTINF:-1,Las estrellas 540p
-https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_5.m3u8
 #EXTINF:-1,Las estrellas 720
 https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index_6.m3u8
-#EXTINF:-1 group-title="Peliculas",Tlnovelas
+#EXTINF:-1,Tlnovelas
 http://181.78.79.131:8000/play/a0t6
-#EXTINF:0 group-title="Peliculas",TNT Novelas HD
-#EXTGRP:Peliculas
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,TNT Novelas HD
 http://181.78.79.131:8000/play/a0na
 #EXTINF:-1,Todo Novelas, más Pasiones 1080
 https://dtsszjrztq9ti.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-yshah5p4v45g1/ToDoNovelas_ES.m3u8
-#EXTINF:0 group-title="Peliculas",Pasiones HD
+#EXTINF:-1,Pasiones HD
 http://181.78.79.131:8000/play/a0qh
+#EXTINF:-1,Canal Caracol 
+http://181.78.79.131:8000/play/a0sb
+#EXTINF:-1,Canal RCN 
+http://181.78.79.131:8000/play/a0sc
+#EXTINF:-1,RCN Novelas 
+http://181.78.79.131:8000/play/a0sk
 #EXTINF:-1,Las estrellas Estados Unidos 1080p teleon.tv
 https://estrellatv-plex.amagi.tv/playlistR1080p.m3u8
-#EXTINF:-1,Las estrellas Estados Unidos 720p teleon.tv
-https://estrellatv-plex.amagi.tv/playlistR720P.m3u8
 #EXTINF:-1,Las estrellas Estados Unidos 432p
 https://estrellatv-oando.amagi.tv/playlistR432p.m3u8
-#EXTINF:0 group-title="Noticias",CNN Español
-#EXTGRP:Noticias
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,CNN Español
 http://181.78.79.131:8000/play/a0p3
 #EXTINF:-1,CNN Español 1080p
 https://amg00803-cnnfast-amg00803c3-lg-es-5477.playouts.now.amagi.tv/playlist1080p.m3u8
@@ -61,70 +55,37 @@ https://5ca3e84a76d30.streamlock.net/tn8/videotn8/chunklist_w647815762.m3u8
 https://ddycmnicl95kp.cloudfront.net/live/ja5k3h31wv9r/master.m3u8
 #EXTINF:-1,Canal 13 viva Nicaragua 720p
 https://cdn.vivamediosni.com/viva_720p/main_stream.m3u8
-#EXTINF:-1 group-title="Entretenimiento",A&E HD
+#EXTINF:-1,A&E HD
 http://181.78.79.131:8000/play/a0mt
-#EXTINF:-1 group-title="Peliculas",AXN HD
+#EXTINF:-1,AXN HD
 http://181.78.79.131:8000/play/a0q0 
-#EXTINF:-1 group-title="Peliculas",AXN 1080
+#EXTINF:-1,AXN 1080
 http://181.78.8.199:8000/play/a0cu/index.m3u8
-#EXTINF:-1 group-title="Entretenimiento",Adult Swim
+#EXTINF:-1,Adult Swim
 http://181.78.79.131:8000/play/a0pk
-#EXTINF:0 group-title="Peliculas",HBO
+#EXTINF:-1,HBO
 http://181.78.79.131:8000/play/a0qd
-#EXTINF:-1 group-title="Peliculas",HBO Xtreme HD
+#EXTINF:-1,HBO Xtreme HD
 http://181.78.79.131:8000/play/a0qy
-#EXTINF:0 group-title="Peliculas",UNIVERSAL CHANNEL HD
-#EXTGRP:Peliculas
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,UNIVERSAL CHANNEL HD
 http://181.78.79.131:8000/play/a0mw
-#EXTINF:0 group-title="Documentales",Discovery World HD
-#EXTGRP:Documentales
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,Discovery World HD
 http://181.78.79.131:8000/play/a0n8
-#EXTINF:0 group-title="Entretenimiento",MTV HD
-#EXTGRP:Entretenimiento
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,MTV HD 
 http://181.78.79.131:8000/play/a0nc
-#EXTINF:0 group-title="Entretenimiento",Disney Jr.
-#EXTGRP:Entretenimiento
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,Disney Jr. 
 http://181.78.79.131:8000/play/a0p7
-#EXTINF:0 group-title="Documentales",Discovery Science
-#EXTGRP:Documentales
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,Discovery Science 
 http://181.78.79.131:8000/play/a0pb
-#EXTINF:0 group-title="Entretenimiento",Lifetime
-#EXTGRP:Entretenimiento
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,Lifetime
 http://181.78.79.131:8000/play/a0pi
-#EXTINF:0 group-title="Peliculas",Cinecanal
-#EXTGRP:Peliculas
-#EXTVLCOPT:network-caching=1000
-#EXTINF:0 group-title="Documentales",Nat Geo HD
-#EXTGRP:Documentales
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,Cinecanal
+http://181.78.79.131:8000/play/a0pp
+#EXTINF:-1,Nat Geo HD
 http://181.78.79.131:8000/play/a0pt
-#EXTINF:0 group-title="Peliculas",Warner TV HD
-#EXTGRP:Peliculas
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,Warner TV HD 
 http://181.78.79.131:8000/play/a0pz
-#EXTINF:0 group-title="Peliculas",Space HD
-#EXTGRP:Peliculas
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,Space HD 
 http://181.78.79.131:8000/play/a0q2
-#EXTINF:0 group-title="Entretenimiento",Nickelodeon HD
-#EXTGRP:Entretenimiento
-#EXTVLCOPT:network-caching=1000
+#EXTINF:-1,Nickelodeon HD 
 http://181.78.79.131:8000/play/a0qm
-#EXTINF:0 group-title="Colombia",Canal Caracol
-#EXTGRP:Colombia
-#EXTVLCOPT:network-caching=1000
-http://181.78.79.131:8000/play/a0sb
-#EXTINF:0 group-title="Colombia",Canal RCN
-#EXTGRP:Colombia
-#EXTVLCOPT:network-caching=1000
-http://181.78.79.131:8000/play/a0sc
-#EXTINF:0 group-title="Colombia",RCN Novelas
-#EXTGRP:Colombia
-#EXTVLCOPT:network-caching=1000
-http://181.78.79.131:8000/play/a0sk
