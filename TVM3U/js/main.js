@@ -337,36 +337,36 @@ function sincronizarListaDesdeGitHub() {
             cache: "reload"
         })
 
-            .then(function (response) {
+        .then(function (response) {
 
-                if (!response.ok) {
-                    throw new Error(
-                        "HTTP Status " +
-                        response.status
-                    );
-                }
-
-                return response.text();
-            })
-
-            .then(function (data) {
-
-                procesarYActualizarLista(
-                    data,
-                    "GitHub Directo (Fetch)"
+            if (!response.ok) {
+                throw new Error(
+                    "HTTP Status " +
+                    response.status
                 );
-            })
+            }
 
-            .catch(function (err) {
+            return response.text();
+        })
 
-                console.warn(
-                    "Falló Fetch directo. " +
-                    "Intentando vía Proxy CORS:",
-                    err
-                );
+        .then(function (data) {
 
-                descargarViaProxy(timestamp);
-            });
+            procesarYActualizarLista(
+                data,
+                "GitHub Directo (Fetch)"
+            );
+        })
+
+        .catch(function (err) {
+
+            console.warn(
+                "Falló Fetch directo. " +
+                "Intentando vía Proxy CORS:",
+                err
+            );
+
+            descargarViaProxy(timestamp);
+        });
 
     } else {
 
@@ -392,25 +392,25 @@ function descargarViaProxy(timestamp) {
             cache: "no-store"
         })
 
-            .then(function (res) {
-                return res.text();
-            })
+        .then(function (res) {
+            return res.text();
+        })
 
-            .then(function (data) {
+        .then(function (data) {
 
-                procesarYActualizarLista(
-                    data,
-                    "GitHub vía Proxy"
-                );
-            })
+            procesarYActualizarLista(
+                data,
+                "GitHub vía Proxy"
+            );
+        })
 
-            .catch(function (e) {
+        .catch(function (e) {
 
-                console.error(
-                    "Error definitivo al descargar desde GitHub:",
-                    e
-                );
-            });
+            console.error(
+                "Error definitivo al descargar desde GitHub:",
+                e
+            );
+        });
 
     } else {
 
@@ -1031,11 +1031,6 @@ function lanzarAVPlay(urlFinal) {
 
         try {
             webapis.avplay.open(urlFinal);
-            // Configurar User-Agent antes de preparar el stream
-            webapis.avplay.setStreamingProperty(
-                "USER_AGENT",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36"
-            );
             webapis.avplay.setDisplayRect(0, 0, window.innerWidth || 1920, window.innerHeight || 1080);
 
             var listener = {
@@ -1044,9 +1039,9 @@ function lanzarAVPlay(urlFinal) {
                 },
                 onbufferingcomplete: function () {
                     console.log("Buffer listo. Esperando metadatos del stream...");
-
+                    
                     // Simulación / Espera de metadatos reales del stream (como hace VLC a los pocos segundos)
-                    setTimeout(function () {
+                    setTimeout(function() {
                         // Si el canal tiene una descripción o programa real en la lista, úsalo; 
                         // de lo contrario, puedes extraer metadatos si el stream los emite.
                         if (canalActual && canalActual.programa && canalActual.programa !== canalActual.nombre) {
@@ -1085,11 +1080,11 @@ function lanzarAVPlay(urlFinal) {
             });
 
             // Escuchar pistas de metadatos temporales (ID3 / Timed Metadata en HLS)
-            videoElement.onloadedmetadata = function () {
-                setTimeout(function () {
+            videoElement.onloadedmetadata = function() {
+                setTimeout(function() {
                     if (videoElement.textTracks && videoElement.textTracks.length > 0) {
                         for (var i = 0; i < videoElement.textTracks.length; i++) {
-                            videoElement.textTracks[i].oncuechange = function (e) {
+                            videoElement.textTracks[i].oncuechange = function(e) {
                                 if (this.activeCues && this.activeCues.length > 0) {
                                     actualizarProgramaEnVivo(this.activeCues[0].text);
                                 }
@@ -1156,7 +1151,7 @@ function obtenerStreamDailymotion(videoId) {
                     // Buscar primero sub-variantes que contengan sec2(...) o URLs absolutas de CDN
                     for (var i = 0; i < lines.length; i++) {
                         var line = lines[i].trim();
-
+                        
                         // Omitir líneas vacías y comentarios de M3U8
                         if (line.length === 0 || line.indexOf("#") === 0) {
                             continue;
@@ -1243,11 +1238,11 @@ function obtenerProgramaActualParaCanal(urlCanal) {
             if (horaInicio && horaFin) {
                 horarioTexto = horaInicio + " - " + horaFin;
             }
-
+            
             if (listaCanales[canalTarget]) {
                 listaCanales[canalTarget].programa = nombrePrograma;
                 listaCanales[canalTarget].horario = horarioTexto;
-
+                
                 var canal = listaCanales[canalTarget];
 
                 if (canalTarget === indiceReproduciendo) {
